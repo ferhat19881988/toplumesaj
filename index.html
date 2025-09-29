@@ -333,16 +333,39 @@ function collectQueue() {
 async function startQueue() {
   if (!state.rows.length) { alert('Önce veriyi yükleyin.'); return; }
   state.queue = collectQueue(); if (!state.queue.length) { alert('Seçili geçerli telefon yok.'); return; }
-  const tpl = $('#tpl').value; const sec = Math.max(2, Number($('#intervalSec').value) || 6);
+  const tpl = $('#tpl').value;
+  const sec = Math.max(2, Number($('#intervalSec').value) || 6);
   const cc = $('#countryCode').value || '90';
   log(`Başladı: ${state.queue.length} kişi, ${sec}s aralık.`);
-  for (let i=0;i<state.queue.length;i++){
-    while(state.paused){ await sleep(350); }
+
+  // Birden fazla pencere açmaya çalışmak tarayıcı pop-up engelleyicisine takılabilir.
+  // Bunun yerine sadece ilk mesajı yeni bir pencerede açıp, diğer mesajlarda aynı pencerenin
+  // konumunu güncelliyoruz. Böylece her telefon numarası için yeni sekme açılmadan sırayla
+  // WhatsApp bağlantısı yüklenir.
+  let waWindow = null;
+  for (let i = 0; i < state.queue.length; i++) {
+    while (state.paused) {
+      await sleep(350);
+    }
     const row = state.rows[state.queue[i]];
-    const url = buildWhatsAppUrl(normalizePhone(row.Telefon, cc), fillTemplate(tpl,row));
-    window.open(url,'_blank'); // Pop-up için kullanıcı etkileşimi gerekli
+    const url = buildWhatsAppUrl(
+      normalizePhone(row.Telefon, cc),
+      fillTemplate(tpl, row)
+    );
+    try {
+      if (!waWindow || waWindow.closed) {
+        // İlk veya kapatılmış ise yeni pencere aç
+        waWindow = window.open(url, '_blank');
+      } else {
+        // Aynı pencereyi yeniden kullanarak adresini güncelle
+        waWindow.location.href = url;
+      }
+    } catch (e) {
+      // Eğer tarayıcı pencere açamıyor veya güncelleyemiyorsa, son çare tekrar open çağır
+      waWindow = window.open(url, '_blank');
+    }
     log(`Açıldı: ${row.ADSOYAD} (${row.SINIF})`);
-    await sleep(sec*1000);
+    await sleep(sec * 1000);
   }
   log('Bitti.');
 }
