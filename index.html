@@ -57,6 +57,8 @@
     }
     details{ background:#f8fafc; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; }
     small code{ background:#f1f3f8; padding:2px 6px; border-radius:6px; }
+    .mode-group{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .hint{ font-size:12px; color:#475569; }
   </style>
 </head>
 <body>
@@ -101,14 +103,31 @@
           <select id="classFilter"><option value="">— Hepsi —</option></select>
         </div>
       </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div class="flex-2">
+          <label>İlerleme modu</label>
+          <div class="mode-group">
+            <label><input type="radio" name="advanceMode" value="timer" checked> Zamana göre</label>
+            <label><input type="radio" name="advanceMode" value="onclose"> Sekme kapatılınca</label>
+            <label><input type="radio" name="advanceMode" value="hotkey"> Klavye/Butonla</label>
+            <button id="btnAdvance" class="muted" disabled>Devam (Gönderildi)</button>
+          </div>
+          <div class="hint">
+            <div><b>Klavye:</b> Shift+Enter = Devam</div>
+            <div><b>Sekme kapatılınca:</b> Mesajı gönderip WhatsApp sekmesini kapatın, sıradaki kişi otomatik açılır.</div>
+          </div>
+        </div>
+        <div class="flex-1" style="text-align:right; align-self:center;">
+          <span id="stats" class="badge">0 kayıt</span>
+        </div>
+      </div>
+
       <div class="row" style="margin-top:10px; align-items:center;">
         <div class="flex-1">
           <button id="btnStart" class="primary">Seçili Kişilere WhatsApp Mesajı Başlat</button>
           <button id="btnPause" class="muted">Duraklat</button>
           <button id="btnReset" class="danger">Sıfırla</button>
-        </div>
-        <div class="flex-1" style="text-align:right">
-          <span id="stats" class="badge">0 kayıt</span>
         </div>
       </div>
     </div>
@@ -196,11 +215,16 @@ function fillTemplate(tpl, row) {
 }
 function buildWhatsAppUrl(phone, text) {
   const p = phone.replace(/\D+/g,'');
+  // Not: Mobilde isterseniz wa.me de kullanılabilir.
   return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(text)}`;
 }
 
 /* ---- Uygulama durumu ---- */
-const state = { rows: [], queue: [], paused:false, waWin:null };
+const state = {
+  rows: [], queue: [], paused:false, waWin:null,
+  advanceMode: 'timer',
+  advanceResolver: null, // hotkey/buton için bekleyen Promise resolver
+};
 
 /* ---- URL dönüştürme ---- */
 function deriveCandidateUrls(inputUrl, sheetName) {
@@ -274,45 +298,83 @@ function collectQueue() {
     .filter(i => normalizePhone(state.rows[i]?.Telefon, cc));
 }
 
-/* ---- WhatsApp toplu gönderim (tek sekme) ---- */
+/* ---- Hotkey/Buton “Devam” bekleyicisi ---- */
+function waitAdvanceSignal() {
+  return new Promise(resolve => {
+    state.advanceResolver = () => { state.advanceResolver = null; resolve(); };
+    $('#btnAdvance').disabled = false;
+  });
+}
+function triggerAdvance() {
+  if (typeof state.advanceResolver === 'function') {
+    $('#btnAdvance').disabled = true;
+    state.advanceResolver();
+  }
+}
+
+/* ---- WhatsApp toplu gönderim (modlara göre) ---- */
 async function startQueue() {
   if (!state.rows.length) { alert('Önce veriyi yükleyin.'); return; }
   state.queue = collectQueue(); if (!state.queue.length) { alert('Seçili geçerli telefon yok.'); return; }
-  const tpl = $('#tpl').value; const sec = Math.max(2, Number($('#intervalSec').value) || 6);
-  const cc = $('#countryCode').value || '90';
-  log(`Başladı: ${state.queue.length} kişi, ${sec}s aralık.`);
 
-  // İlk URL'yi kullanıcı tıklaması anında aç (popup engelini aşmak için)
+  const tpl = $('#tpl').value;
+  const sec = Math.max(2, Number($('#intervalSec').value) || 6);
+  const cc = $('#countryCode').value || '90';
+  const mode = state.advanceMode;
+  log(`Başladı: ${state.queue.length} kişi | Mod: ${mode}${mode==='timer' ? ` | ${sec}s` : ''}`);
+
   const firstRow = state.rows[state.queue[0]];
   const firstUrl = buildWhatsAppUrl(normalizePhone(firstRow.Telefon, cc), fillTemplate(tpl, firstRow));
-  state.waWin = window.open(firstUrl, 'wa_bulk'); // Neden: sonraki mesajları aynı sekmede ilerletmek için
+
+  state.waWin = window.open(firstUrl, 'wa_bulk'); // Pop-up engeline karşı ilk tıklamada açıyoruz
   if (!state.waWin || state.waWin.closed) {
-    alert('Tarayıcı açılır pencereleri engelledi. Lütfen bu site için pop-up izni verin ve tekrar deneyin.');
+    alert('Tarayıcı açılır pencereleri engelledi. Lütfen pop-up izni verin ve tekrar deneyin.');
     log('Pop-up engellendi.');
     return;
   }
   log(`Açıldı: ${firstRow.ADSOYAD} (${firstRow.SINIF})`);
 
-  // Kalanları sırayla aynı sekmede ilerlet
   for (let k = 1; k < state.queue.length; k++) {
-    while (state.paused) { await sleep(350); }
-    await sleep(sec * 1000);
+    while (state.paused) { await sleep(300); }
+
+    if (mode === 'timer') {
+      await sleep(sec * 1000);
+    } else if (mode === 'onclose') {
+      // Neden: Kullanıcı gönderip sekmeyi kapatsın, biz de sonraki kişiyi açalım.
+      log('Sekme kapatılmasını bekliyor...');
+      while (state.waWin && !state.waWin.closed) { await sleep(300); }
+      await sleep(150); // bekleme: tarayıcı kapanışı işlesin
+    } else if (mode === 'hotkey') {
+      log('Devam sinyali bekleniyor (Shift+Enter veya “Devam” butonu).');
+      await waitAdvanceSignal(); // buton/klavye tetiklediğinde devam eder
+    }
+
     const row = state.rows[state.queue[k]];
     const nextUrl = buildWhatsAppUrl(normalizePhone(row.Telefon, cc), fillTemplate(tpl, row));
 
     try {
-      if (state.waWin && !state.waWin.closed) {
-        state.waWin.location.href = nextUrl; // Neden: yeni pop-up tetiklememek için
+      if (mode === 'onclose') {
+        // Sekme kapandıysa yeniden açmamız gerekir (bazı tarayıcılarda blok olabilir)
+        state.waWin = window.open(nextUrl, 'wa_bulk');
       } else {
-        state.waWin = window.open(nextUrl, 'wa_bulk'); // kapandıysa aynı hedefe yeniden aç
+        if (state.waWin && !state.waWin.closed) {
+          state.waWin.location.href = nextUrl; // Aynı sekmede ilerlet
+        } else {
+          state.waWin = window.open(nextUrl, 'wa_bulk'); // kapandıysa aç
+        }
       }
+      if (!state.waWin) throw new Error('Sekme açılamadı (pop-up engeli?)');
       log(`Açıldı: ${row.ADSOYAD} (${row.SINIF})`);
     } catch (e) {
-      // Bazı tarayıcılar sekme başka domaine yönlenince origin kısıtı çıkarabilir
-      log(`Sekmeye erişilemedi, yeniden açılıyor... (${e.message || e})`);
+      log(`Sekmeye erişilemedi: ${e.message || e}. Tekrar deneniyor...`);
       state.waWin = window.open(nextUrl, 'wa_bulk');
+      if (!state.waWin) {
+        alert('Sekme açılamıyor. Pop-up engelini kaldırıp tekrar başlatın.');
+        break;
+      }
     }
   }
+  $('#btnAdvance').disabled = true;
   log('Bitti.');
 }
 
@@ -323,8 +385,35 @@ $('#tpl').addEventListener('input', () => renderTable(state.rows, $('#tpl').valu
 $('#classFilter').addEventListener('change', () => renderTable(state.rows, $('#tpl').value, $('#classFilter').value));
 $('#countryCode').addEventListener('change', () => renderTable(state.rows, $('#tpl').value, $('#classFilter').value));
 $('#btnStart').addEventListener('click', startQueue);
-$('#btnPause').addEventListener('click', () => { state.paused = !state.paused; $('#btnPause').textContent = state.paused ? 'Devam' : 'Duraklat'; log(state.paused ? 'Duraklatıldı.' : 'Devam ediyor...'); });
-$('#btnReset').addEventListener('click', () => { state.queue = []; state.paused = false; $('#btnPause').textContent = 'Duraklat'; log('Sıfırlandı.'); });
+$('#btnPause').addEventListener('click', () => {
+  state.paused = !state.paused;
+  $('#btnPause').textContent = state.paused ? 'Devam' : 'Duraklat';
+  log(state.paused ? 'Duraklatıldı.' : 'Devam ediyor...');
+});
+$('#btnReset').addEventListener('click', () => {
+  state.queue = []; state.paused = false; $('#btnPause').textContent = 'Duraklat';
+  $('#btnAdvance').disabled = true; state.advanceResolver = null;
+  log('Sıfırlandı.');
+});
+
+/* ---- İlerleme modu seçimleri ---- */
+document.querySelectorAll('input[name="advanceMode"]').forEach(r => {
+  r.addEventListener('change', (e) => {
+    state.advanceMode = e.target.value;
+    const hotkey = state.advanceMode === 'hotkey';
+    $('#btnAdvance').disabled = !hotkey;
+    log(`Mod: ${state.advanceMode}${state.advanceMode==='timer' ? ` | ${Math.max(2, Number($('#intervalSec').value) || 6)}s` : ''}`);
+  });
+});
+
+/* ---- “Devam” butonu ve kısayol ---- */
+$('#btnAdvance').addEventListener('click', triggerAdvance);
+document.addEventListener('keydown', (e) => {
+  if (state.advanceMode === 'hotkey' && e.key === 'Enter' && e.shiftKey) {
+    e.preventDefault();
+    triggerAdvance();
+  }
+});
 
 /* ---- Otomatik doldur & otomatik yükle ---- */
 document.addEventListener('DOMContentLoaded', () => {
