@@ -6,112 +6,55 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Veli WhatsApp Toplu Mesaj</title>
   <style>
-    /* Tema Değişkenleri (açık tonlar) */
     :root{
-      --gap:12px;
-      --radius:12px;
-      --bg:#f7f8fb;
-      --text:#1f2937;
-      --card:#ffffff;
-      --muted:#eef2f7;
-      --border:#e6eaf2;
-      --primary:#3b82f6;
-      --primary-600:#2563eb;
-      --danger:#ef4444;
-      --shadow:0 1px 4px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.04);
+      --gap:12px; --radius:12px; --bg:#f7f8fb; --text:#1f2937; --card:#ffffff;
+      --muted:#eef2f7; --border:#e6eaf2; --primary:#3b82f6; --primary-600:#2563eb;
+      --danger:#ef4444; --shadow:0 1px 4px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.04);
     }
-
-    /* Temel */
-    *,*::before,*::after{ box-sizing:border-box; } /* Neden: taşmaları ve üst üste binmeyi engeller */
+    *,*::before,*::after{ box-sizing:border-box; }
     html,body{height:100%}
-    body{
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      margin:0; background:var(--bg); color:var(--text);
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-    }
+    body{ font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:0; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
     .container{max-width:1100px; margin:28px auto; padding:0 16px;}
     h1{margin:0 0 16px; font-size:24px; letter-spacing:.2px;}
-
-    /* Kartlar */
-    .card{
-      background:var(--card);
-      border-radius:var(--radius);
-      padding:16px;
-      box-shadow:var(--shadow);
-      margin-bottom:16px;
-      transition:transform .2s ease, box-shadow .2s ease;
-    }
+    .card{ background:var(--card); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:16px; transition:transform .2s ease, box-shadow .2s ease; }
     .card:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.08); }
-
-    /* === FORM GRID (Hizalama düzeltildi) === */
-    .row{
-      display:grid;
-      grid-template-columns:repeat(12, minmax(0,1fr));
-      gap:var(--gap);
-      align-items:end;
-    }
-    .flex-1{ grid-column:span 4; min-width:0; } /* min-width:0 => taşıp üst üste binmeyi önler */
+    .row{ display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); gap:var(--gap); align-items:end; }
+    .flex-1{ grid-column:span 4; min-width:0; }
     .flex-2{ grid-column:span 8; min-width:0; }
-
-    @media (max-width: 1024px){
-      .flex-2{ grid-column:span 7; }
-      .flex-1{ grid-column:span 5; }
-    }
-    @media (max-width: 820px){
-      .flex-2, .flex-1{ grid-column:1 / -1; } /* mobilde tek sütun */
-    }
-
-    /* Form öğeleri */
+    @media (max-width: 1024px){ .flex-2{ grid-column:span 7; } .flex-1{ grid-column:span 5; } }
+    @media (max-width: 820px){ .flex-2, .flex-1{ grid-column:1 / -1; } }
     label{ display:block; font-weight:600; font-size:13px; margin-bottom:6px; }
     input[type="text"], textarea, select, input[type="number"]{
-      width:100%; padding:10px 12px; border:1px solid var(--border);
-      border-radius:10px; background:#fff; transition:border-color .2s, box-shadow .2s, background .2s;
+      width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#fff; transition:border-color .2s, box-shadow .2s, background .2s;
     }
     textarea{ min-height:96px; resize:vertical; }
-    input:focus, textarea:focus, select:focus{
-      border-color:var(--primary);
-      box-shadow:0 0 0 3px rgba(59,130,246,.15);
-      outline:0;
-    }
-
-    /* Butonlar */
+    input:focus, textarea:focus, select:focus{ border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,.15); outline:0; }
     button{
       padding:10px 14px; border-radius:10px; border:0; cursor:pointer; font-weight:600;
-      transition:background .2s, transform .05s, box-shadow .2s;
-      background:var(--muted);
+      transition:background .2s, transform .05s, box-shadow .2s; background:var(--muted);
     }
     button:focus-visible{ outline:3px solid rgba(59,130,246,.35); outline-offset:2px; }
     button:active{ transform:translateY(1px); }
     button:disabled{ opacity:.6; cursor:not-allowed; }
-
     .primary{ background:var(--primary); color:#fff; }
     .primary:hover{ background:var(--primary-600); }
     .muted{ background:var(--muted); }
     .muted:hover{ background:#e7ecf5; }
     .danger{ background:var(--danger); color:#fff; }
     .danger:hover{ filter:brightness(.95); }
-
-    /* Tablo */
-    .table-wrap{
-      max-height:420px; overflow:auto; border:1px solid var(--border);
-      border-radius:10px; background:#fff;
-    }
+    .table-wrap{ max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:10px; background:#fff; }
     table{ width:100%; border-collapse:collapse; background:#fff; }
     th,td{ border-bottom:1px solid #eef1f6; padding:10px; font-size:13px; text-align:left; }
     th{ position:sticky; top:0; z-index:1; background:#f5f7fb; }
     tbody tr:nth-child(odd){ background:#fcfdff; }
     tbody tr:hover{ background:#f2f7ff; }
     td:first-child input[type="checkbox"]{ accent-color:var(--primary); }
-
-    /* Rozet & Log */
     .badge{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:var(--muted); color:#334155; }
     .log{
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       font-size:12px; white-space:pre-wrap; background:#0b1020; color:#e6edf3;
       border-radius:10px; padding:10px; max-height:180px; overflow:auto; border:1px solid #0f172a;
     }
-
-    /* Küçük iyileştirmeler */
     details{ background:#f8fafc; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; }
     small code{ background:#f1f3f8; padding:2px 6px; border-radius:6px; }
   </style>
@@ -257,7 +200,7 @@ function buildWhatsAppUrl(phone, text) {
 }
 
 /* ---- Uygulama durumu ---- */
-const state = { rows: [], queue: [], paused:false };
+const state = { rows: [], queue: [], paused:false, waWin:null };
 
 /* ---- URL dönüştürme ---- */
 function deriveCandidateUrls(inputUrl, sheetName) {
@@ -330,42 +273,45 @@ function collectQueue() {
     .map(c => Number(c.dataset.idx))
     .filter(i => normalizePhone(state.rows[i]?.Telefon, cc));
 }
+
+/* ---- WhatsApp toplu gönderim (tek sekme) ---- */
 async function startQueue() {
   if (!state.rows.length) { alert('Önce veriyi yükleyin.'); return; }
   state.queue = collectQueue(); if (!state.queue.length) { alert('Seçili geçerli telefon yok.'); return; }
-  const tpl = $('#tpl').value;
-  const sec = Math.max(2, Number($('#intervalSec').value) || 6);
+  const tpl = $('#tpl').value; const sec = Math.max(2, Number($('#intervalSec').value) || 6);
   const cc = $('#countryCode').value || '90';
   log(`Başladı: ${state.queue.length} kişi, ${sec}s aralık.`);
 
-  // Birden fazla pencere açmaya çalışmak tarayıcı pop-up engelleyicisine takılabilir.
-  // Bunun yerine sadece ilk mesajı yeni bir pencerede açıp, diğer mesajlarda aynı pencerenin
-  // konumunu güncelliyoruz. Böylece her telefon numarası için yeni sekme açılmadan sırayla
-  // WhatsApp bağlantısı yüklenir.
-  let waWindow = null;
-  for (let i = 0; i < state.queue.length; i++) {
-    while (state.paused) {
-      await sleep(350);
-    }
-    const row = state.rows[state.queue[i]];
-    const url = buildWhatsAppUrl(
-      normalizePhone(row.Telefon, cc),
-      fillTemplate(tpl, row)
-    );
-    try {
-      if (!waWindow || waWindow.closed) {
-        // İlk veya kapatılmış ise yeni pencere aç
-        waWindow = window.open(url, '_blank');
-      } else {
-        // Aynı pencereyi yeniden kullanarak adresini güncelle
-        waWindow.location.href = url;
-      }
-    } catch (e) {
-      // Eğer tarayıcı pencere açamıyor veya güncelleyemiyorsa, son çare tekrar open çağır
-      waWindow = window.open(url, '_blank');
-    }
-    log(`Açıldı: ${row.ADSOYAD} (${row.SINIF})`);
+  // İlk URL'yi kullanıcı tıklaması anında aç (popup engelini aşmak için)
+  const firstRow = state.rows[state.queue[0]];
+  const firstUrl = buildWhatsAppUrl(normalizePhone(firstRow.Telefon, cc), fillTemplate(tpl, firstRow));
+  state.waWin = window.open(firstUrl, 'wa_bulk'); // Neden: sonraki mesajları aynı sekmede ilerletmek için
+  if (!state.waWin || state.waWin.closed) {
+    alert('Tarayıcı açılır pencereleri engelledi. Lütfen bu site için pop-up izni verin ve tekrar deneyin.');
+    log('Pop-up engellendi.');
+    return;
+  }
+  log(`Açıldı: ${firstRow.ADSOYAD} (${firstRow.SINIF})`);
+
+  // Kalanları sırayla aynı sekmede ilerlet
+  for (let k = 1; k < state.queue.length; k++) {
+    while (state.paused) { await sleep(350); }
     await sleep(sec * 1000);
+    const row = state.rows[state.queue[k]];
+    const nextUrl = buildWhatsAppUrl(normalizePhone(row.Telefon, cc), fillTemplate(tpl, row));
+
+    try {
+      if (state.waWin && !state.waWin.closed) {
+        state.waWin.location.href = nextUrl; // Neden: yeni pop-up tetiklememek için
+      } else {
+        state.waWin = window.open(nextUrl, 'wa_bulk'); // kapandıysa aynı hedefe yeniden aç
+      }
+      log(`Açıldı: ${row.ADSOYAD} (${row.SINIF})`);
+    } catch (e) {
+      // Bazı tarayıcılar sekme başka domaine yönlenince origin kısıtı çıkarabilir
+      log(`Sekmeye erişilemedi, yeniden açılıyor... (${e.message || e})`);
+      state.waWin = window.open(nextUrl, 'wa_bulk');
+    }
   }
   log('Bitti.');
 }
