@@ -1,0 +1,368 @@
+<!-- file: /mnt/data/index.html -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Veli WhatsApp Toplu Mesaj</title>
+  <style>
+    /* Tema Değişkenleri (açık tonlar) */
+    :root{
+      --gap:12px;
+      --radius:12px;
+      --bg:#f7f8fb;
+      --text:#1f2937;
+      --card:#ffffff;
+      --muted:#eef2f7;
+      --border:#e6eaf2;
+      --primary:#3b82f6;
+      --primary-600:#2563eb;
+      --danger:#ef4444;
+      --shadow:0 1px 4px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.04);
+    }
+
+    /* Temel */
+    *,*::before,*::after{ box-sizing:border-box; } /* Neden: taşmaları ve üst üste binmeyi engeller */
+    html,body{height:100%}
+    body{
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      margin:0; background:var(--bg); color:var(--text);
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    .container{max-width:1100px; margin:28px auto; padding:0 16px;}
+    h1{margin:0 0 16px; font-size:24px; letter-spacing:.2px;}
+
+    /* Kartlar */
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:16px;
+      box-shadow:var(--shadow);
+      margin-bottom:16px;
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+    .card:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.08); }
+
+    /* === FORM GRID (Hizalama düzeltildi) === */
+    .row{
+      display:grid;
+      grid-template-columns:repeat(12, minmax(0,1fr));
+      gap:var(--gap);
+      align-items:end;
+    }
+    .flex-1{ grid-column:span 4; min-width:0; } /* min-width:0 => taşıp üst üste binmeyi önler */
+    .flex-2{ grid-column:span 8; min-width:0; }
+
+    @media (max-width: 1024px){
+      .flex-2{ grid-column:span 7; }
+      .flex-1{ grid-column:span 5; }
+    }
+    @media (max-width: 820px){
+      .flex-2, .flex-1{ grid-column:1 / -1; } /* mobilde tek sütun */
+    }
+
+    /* Form öğeleri */
+    label{ display:block; font-weight:600; font-size:13px; margin-bottom:6px; }
+    input[type="text"], textarea, select, input[type="number"]{
+      width:100%; padding:10px 12px; border:1px solid var(--border);
+      border-radius:10px; background:#fff; transition:border-color .2s, box-shadow .2s, background .2s;
+    }
+    textarea{ min-height:96px; resize:vertical; }
+    input:focus, textarea:focus, select:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(59,130,246,.15);
+      outline:0;
+    }
+
+    /* Butonlar */
+    button{
+      padding:10px 14px; border-radius:10px; border:0; cursor:pointer; font-weight:600;
+      transition:background .2s, transform .05s, box-shadow .2s;
+      background:var(--muted);
+    }
+    button:focus-visible{ outline:3px solid rgba(59,130,246,.35); outline-offset:2px; }
+    button:active{ transform:translateY(1px); }
+    button:disabled{ opacity:.6; cursor:not-allowed; }
+
+    .primary{ background:var(--primary); color:#fff; }
+    .primary:hover{ background:var(--primary-600); }
+    .muted{ background:var(--muted); }
+    .muted:hover{ background:#e7ecf5; }
+    .danger{ background:var(--danger); color:#fff; }
+    .danger:hover{ filter:brightness(.95); }
+
+    /* Tablo */
+    .table-wrap{
+      max-height:420px; overflow:auto; border:1px solid var(--border);
+      border-radius:10px; background:#fff;
+    }
+    table{ width:100%; border-collapse:collapse; background:#fff; }
+    th,td{ border-bottom:1px solid #eef1f6; padding:10px; font-size:13px; text-align:left; }
+    th{ position:sticky; top:0; z-index:1; background:#f5f7fb; }
+    tbody tr:nth-child(odd){ background:#fcfdff; }
+    tbody tr:hover{ background:#f2f7ff; }
+    td:first-child input[type="checkbox"]{ accent-color:var(--primary); }
+
+    /* Rozet & Log */
+    .badge{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:var(--muted); color:#334155; }
+    .log{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:12px; white-space:pre-wrap; background:#0b1020; color:#e6edf3;
+      border-radius:10px; padding:10px; max-height:180px; overflow:auto; border:1px solid #0f172a;
+    }
+
+    /* Küçük iyileştirmeler */
+    details{ background:#f8fafc; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; }
+    small code{ background:#f1f3f8; padding:2px 6px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Veli WhatsApp Toplu Mesaj</h1>
+
+    <div class="card">
+      <div class="row">
+        <div class="flex-2">
+          <label for="anyUrl">Google Sheets bağlantısı (Edit / View / CSV / gviz)</label>
+          <input id="anyUrl" type="text">
+        </div>
+        <div class="flex-1">
+          <label for="sheetName">Sayfa adı</label>
+          <input id="sheetName" type="text">
+        </div>
+        <div class="flex-1">
+          <label>&nbsp;</label><br />
+          <button id="btnFetch" class="primary">Veriyi Çek</button>
+        </div>
+      </div>
+      <details style="margin-top:8px">
+        <summary><strong>İpucu</strong></summary>
+        <small>İzin: “Bağlantısı olan herkes ▸ Görüntüleyebilir” olmalı. Gerekirse <b>Dosya ▸ Web’de yayımla</b>.</small>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="flex-2">
+          <label for="tpl">Mesaj şablonu</label>
+          <textarea id="tpl">Merhaba, {ADSOYAD} ({SINIF}) öğrencimiz için bilgilendirme: {MESAJ}</textarea>
+        </div>
+        <div class="flex-1">
+          <label for="countryCode">Ülke kodu</label>
+          <input id="countryCode" type="number" value="90" />
+          <div style="height:8px"></div>
+          <label for="intervalSec">Gönderim aralığı (sn)</label>
+          <input id="intervalSec" type="number" min="2" value="6" />
+          <div style="height:8px"></div>
+          <label for="classFilter">Sınıf filtresi</label>
+          <select id="classFilter"><option value="">— Hepsi —</option></select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px; align-items:center;">
+        <div class="flex-1">
+          <button id="btnStart" class="primary">Seçili Kişilere WhatsApp Mesajı Başlat</button>
+          <button id="btnPause" class="muted">Duraklat</button>
+          <button id="btnReset" class="danger">Sıfırla</button>
+        </div>
+        <div class="flex-1" style="text-align:right">
+          <span id="stats" class="badge">0 kayıt</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAll"></th>
+              <th>NO</th><th>ADSOYAD</th><th>SINIF</th><th>Telefon</th><th>MESAJ</th><th>Önizleme</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ---- Ayarlar ---- */
+const DEFAULT_SHEET_GVIZ_CSV =
+  'https://docs.google.com/spreadsheets/d/1oJGMO7FOPV4U86peeA63lmMk-wVCKsfWuyw2yefMweg/gviz/tq?tqx=out:csv&sheet=velimsg';
+const DEFAULT_SHEET_NAME = 'velimsg';
+
+/* ---- Yardımcılar ---- */
+const $ = sel => document.querySelector(sel);
+const log = (m) => { const box = $('#log'); box.textContent += (m + '\n'); box.scrollTop = box.scrollHeight; };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+function normalizeHeader(h) {
+  return (h || '').toString().trim().toLowerCase('tr')
+    .normalize('NFD').replace(/\p{Diacritic}/gu,'')
+    .replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
+}
+function csvParse(text) {
+  const rows = []; let i=0, cur=[], cell='', inQ=false;
+  while (i < text.length) {
+    const ch = text[i++];
+    if (inQ) { if (ch === '"') { if (text[i] === '"') { cell += '"'; i++; } else inQ = false; } else cell += ch; }
+    else { if (ch === '"') inQ = true; else if (ch === ',') { cur.push(cell); cell=''; }
+      else if (ch === '\n') { cur.push(cell); rows.push(cur); cur=[]; cell=''; }
+      else if (ch !== '\r') cell += ch; }
+  }
+  if (cell.length || cur.length) { cur.push(cell); rows.push(cur); }
+  return rows;
+}
+function buildMapper(headers) {
+  const map = {}, want = {
+    NO: ['no','ogrno','id'],
+    ADSOYAD: ['adsoyad','adisoyadi','isim','ad','soyad','adi_soyadi'],
+    SINIF: ['sinif','sinifi','sınıf','sinifid'],
+    Telefon: ['telefon','tel','gsm','phone','cep','numara'],
+    MESAJ: ['mesaj','aciklama','not','mesajiniz']
+  };
+  const norm = headers.map(normalizeHeader);
+  for (const [k, aliases] of Object.entries(want)) {
+    const idx = norm.findIndex(h => [normalizeHeader(k), ...aliases].includes(h));
+    map[k] = idx;
+  }
+  return map;
+}
+function toObject(row, mapper) {
+  const get = (k) => {
+    const idx = mapper[k];
+    return (idx != null && idx >= 0) ? (row[idx] ?? '').toString().trim() : '';
+  };
+  return { NO:get('NO'), ADSOYAD:get('ADSOYAD'), SINIF:get('SINIF'), Telefon:get('Telefon'), MESAJ:get('MESAJ') };
+}
+function normalizePhone(raw, countryCode='90') {
+  let d = (raw || '').toString().replace(/\D+/g,'');
+  if (!d) return '';
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith(countryCode)) return d;
+  if (d.length === 10) return countryCode + d;
+  if (d.length === 11 && d.startsWith('0')) return countryCode + d.slice(1);
+  return d;
+}
+function fillTemplate(tpl, row) {
+  const dict = { NO:row.NO??'', ADSOYAD:row.ADSOYAD??'', SINIF:row.SINIF??'', TELEFON:row.Telefon??'', MESAJ:row.MESAJ??'' };
+  return tpl.replace(/\{(\w+)\}/g, (_, k) => dict[k.toUpperCase()] ?? '');
+}
+function buildWhatsAppUrl(phone, text) {
+  const p = phone.replace(/\D+/g,'');
+  return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(text)}`;
+}
+
+/* ---- Uygulama durumu ---- */
+const state = { rows: [], queue: [], paused:false };
+
+/* ---- URL dönüştürme ---- */
+function deriveCandidateUrls(inputUrl, sheetName) {
+  const urls = []; const url = (inputUrl || '').trim(); if (!url) return urls;
+  if (/output=csv/i.test(url) || /\/gviz\/tq/i.test(url)) { urls.push(url); return urls; }
+  const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (m) {
+    const id = m[1]; const gid = (url.match(/[?#&]gid=(\d+)/) || [])[1];
+    if (sheetName) urls.push(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`);
+    if (gid) urls.push(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`);
+  }
+  return urls;
+}
+async function fetchCSV(url) {
+  const res = await fetch(url, { mode:'cors' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const ct = res.headers.get('content-type') || ''; const text = await res.text();
+  if (!/csv|plain/i.test(ct) && /^\s*</.test(text)) throw new Error('İzin gerekli veya link hatalı (CSV yerine HTML döndü).');
+  return text;
+}
+
+/* ---- Yükleme & Görünüm ---- */
+async function loadSheet() {
+  const rawUrl = $('#anyUrl').value.trim();
+  const sheetName = $('#sheetName').value.trim();
+  const candidates = deriveCandidateUrls(rawUrl, sheetName);
+  if (!candidates.length) { alert('Geçerli bir Sheets/CSV linki girin.'); return; }
+  log('Denenen adresler:\n- ' + candidates.join('\n- '));
+  let text=null, lastErr=null;
+  for (const u of candidates) { try { text = await fetchCSV(u); log('Başarılı: ' + u); break; } catch(e){ lastErr=e; log('Olmadı: ' + u + ' → ' + e.message); } }
+  if (!text) { alert('Veri alınamadı. Paylaşımı herkes görebilir yapın veya Web’de yayımla (CSV).'); return; }
+  const rows = csvParse(text).filter(r => r.some(c => (c ?? '').toString().trim() !== ''));
+  if (!rows.length) { alert('Boş veri.'); return; }
+  const mapper = buildMapper(rows[0]);
+  state.rows = rows.slice(1).map(r => toObject(r, mapper));
+  renderTable(state.rows, $('#tpl').value, $('#classFilter').value);
+  log(`Tamam: ${state.rows.length} satır yüklendi.`);
+}
+function renderTable(data, template, classFilter) {
+  const tbody = $('#tbl tbody'); tbody.innerHTML = '';
+  const seenClasses = new Set(['']); const cc = $('#countryCode').value || '90';
+  data.forEach((row, i) => {
+    if (classFilter && (row.SINIF || '').toString().trim() !== classFilter) return;
+    const msg = fillTemplate(template, row); const phone = normalizePhone(row.Telefon, cc);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="rowchk" data-idx="${i}" ${phone ? 'checked' : ''}></td>
+      <td>${row.NO || ''}</td>
+      <td>${row.ADSOYAD || ''}</td>
+      <td>${row.SINIF || ''}</td>
+      <td>${row.Telefon || ''} ${phone ? '' : '<span class="badge">geçersiz</span>'}</td>
+      <td>${row.MESAJ || ''}</td>
+      <td>${msg}</td>`;
+    tbody.appendChild(tr);
+    seenClasses.add((row.SINIF || '').toString().trim());
+  });
+  const sel = $('#classFilter');
+  if (sel.options.length <= 1) {
+    [...seenClasses].filter(Boolean).sort((a,b)=>a.localeCompare(b,'tr')).forEach(s => {
+      const opt = document.createElement('option'); opt.value = s; opt.textContent = s; sel.appendChild(opt);
+    });
+  }
+  $('#stats').textContent = `${tbody.querySelectorAll('tr').length} kayıt`;
+  $('#selectAll').checked = true;
+}
+function collectQueue() {
+  const cc = $('#countryCode').value || '90';
+  return [...document.querySelectorAll('.rowchk')]
+    .filter(c => c.checked)
+    .map(c => Number(c.dataset.idx))
+    .filter(i => normalizePhone(state.rows[i]?.Telefon, cc));
+}
+async function startQueue() {
+  if (!state.rows.length) { alert('Önce veriyi yükleyin.'); return; }
+  state.queue = collectQueue(); if (!state.queue.length) { alert('Seçili geçerli telefon yok.'); return; }
+  const tpl = $('#tpl').value; const sec = Math.max(2, Number($('#intervalSec').value) || 6);
+  const cc = $('#countryCode').value || '90';
+  log(`Başladı: ${state.queue.length} kişi, ${sec}s aralık.`);
+  for (let i=0;i<state.queue.length;i++){
+    while(state.paused){ await sleep(350); }
+    const row = state.rows[state.queue[i]];
+    const url = buildWhatsAppUrl(normalizePhone(row.Telefon, cc), fillTemplate(tpl,row));
+    window.open(url,'_blank'); // Pop-up için kullanıcı etkileşimi gerekli
+    log(`Açıldı: ${row.ADSOYAD} (${row.SINIF})`);
+    await sleep(sec*1000);
+  }
+  log('Bitti.');
+}
+
+/* ---- Etkileşimler ---- */
+$('#btnFetch').addEventListener('click', loadSheet);
+$('#selectAll').addEventListener('change', (e) => { document.querySelectorAll('.rowchk').forEach(c => c.checked = e.target.checked); });
+$('#tpl').addEventListener('input', () => renderTable(state.rows, $('#tpl').value, $('#classFilter').value));
+$('#classFilter').addEventListener('change', () => renderTable(state.rows, $('#tpl').value, $('#classFilter').value));
+$('#countryCode').addEventListener('change', () => renderTable(state.rows, $('#tpl').value, $('#classFilter').value));
+$('#btnStart').addEventListener('click', startQueue);
+$('#btnPause').addEventListener('click', () => { state.paused = !state.paused; $('#btnPause').textContent = state.paused ? 'Devam' : 'Duraklat'; log(state.paused ? 'Duraklatıldı.' : 'Devam ediyor...'); });
+$('#btnReset').addEventListener('click', () => { state.queue = []; state.paused = false; $('#btnPause').textContent = 'Duraklat'; log('Sıfırlandı.'); });
+
+/* ---- Otomatik doldur & otomatik yükle ---- */
+document.addEventListener('DOMContentLoaded', () => {
+  $('#anyUrl').value = DEFAULT_SHEET_GVIZ_CSV;
+  $('#sheetName').value = DEFAULT_SHEET_NAME;
+  loadSheet();
+});
+</script>
+</body>
+</html>
